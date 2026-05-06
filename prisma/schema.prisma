@@ -1,0 +1,100 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int     @id @default(autoincrement())
+  email     String  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  playbackProgress PlaybackProgress[]
+
+  @@map("users")
+}
+
+model Library {
+  id        Int     @id @default(autoincrement())
+  name      String  @unique
+  type      String  // "movies" or "series"
+  path      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  mediaItems MediaItem[]
+
+  @@map("libraries")
+}
+
+model MediaItem {
+  id          Int     @id @default(autoincrement())
+  title       String
+  type        String  // "movie" or "episode"
+  libraryId   Int
+  library     Library @relation(fields: [libraryId], references: [id], onDelete: Cascade)
+  
+  duration    Int     // seconds
+  codec       String  // "h264", etc
+  year        Int?
+  posterPath  String?
+  
+  // For series/episodes
+  seriesId    Int?    // if part of series
+  series      MediaItem? @relation("SeriesEpisodes", fields: [seriesId], references: [id], onDelete: Cascade)
+  episodes    MediaItem[] @relation("SeriesEpisodes")
+  
+  seasonNumber Int?
+  episodeNumber Int?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  hlsVariants HlsVariant[]
+  playbackProgress PlaybackProgress[]
+
+  @@index([libraryId])
+  @@index([seriesId])
+  @@map("media_items")
+}
+
+model HlsVariant {
+  id          Int     @id @default(autoincrement())
+  mediaItemId Int
+  mediaItem   MediaItem @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+  
+  quality     String  // "480p", "720p", "1080p"
+  bitrate     Int     // kbps
+  manifestUrl String  // path to index.m3u8 in R2
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([mediaItemId])
+  @@map("hls_variants")
+}
+
+model PlaybackProgress {
+  id          Int     @id @default(autoincrement())
+  userId      Int
+  user        User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  mediaItemId Int
+  mediaItem   MediaItem @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+  
+  position    Int     // seconds watched
+  duration    Int     // total seconds
+  lastWatched DateTime @default(now()) @updatedAt
+  
+  @@unique([userId, mediaItemId])
+  @@index([userId])
+  @@index([mediaItemId])
+  @@map("playback_progress")
+}
