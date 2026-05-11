@@ -19,8 +19,16 @@ async function bootstrap() {
         return;
       }
 
+      let isVercelOrigin = false;
+      try {
+        const hostname = new URL(origin).hostname;
+        isVercelOrigin = hostname.endsWith('.vercel.app');
+      } catch {
+        isVercelOrigin = false;
+      }
+
       const isAllowed =
-        allowedOrigins.includes(origin) || origin.endsWith('.vercel.app');
+        allowedOrigins.includes(origin) || isVercelOrigin;
 
       callback(null, isAllowed);
     },
