@@ -26,26 +26,65 @@ async function main() {
   });
   console.log('✓ Library created:', library);
 
-  // Create sample media item (your test video)
-  const media = await prisma.mediaItem.create({
-    data: {
+  // Ensure sample media item exists and stays up to date.
+  let media = await prisma.mediaItem.findFirst({
+    where: {
+      libraryId: library.id,
       title: 'Test Video',
       type: 'movie',
-      libraryId: library.id,
-      duration: 603, // 10 minutes approx
-      codec: 'h264',
-      year: 2025,
-      hlsVariants: {
-        create: [
-          {
-            quality: '480p',
-            bitrate: 1500,
-            manifestUrl: 'https://pub-0439985b7dab4c45b97f07d23ded7462.r2.dev/TestVideo/index.m3u8',
-          },
-        ],
-      },
     },
   });
+
+  if (!media) {
+    media = await prisma.mediaItem.create({
+      data: {
+        title: 'Test Video',
+        type: 'movie',
+        libraryId: library.id,
+        duration: 603, // 10 minutes approx
+        codec: 'h264',
+        year: 2025,
+      },
+    });
+  } else {
+    media = await prisma.mediaItem.update({
+      where: { id: media.id },
+      data: {
+        duration: 603,
+        codec: 'h264',
+        year: 2025,
+      },
+    });
+  }
+
+  const existingVariant = await prisma.hlsVariant.findFirst({
+    where: {
+      mediaItemId: media.id,
+      quality: '480p',
+    },
+  });
+
+  if (!existingVariant) {
+    await prisma.hlsVariant.create({
+      data: {
+        mediaItemId: media.id,
+        quality: '480p',
+        bitrate: 1500,
+        manifestUrl:
+          'https://pub-0439985b7dab4c45b97f07d23ded7462.r2.dev/TestVideo/index.m3u8',
+      },
+    });
+  } else {
+    await prisma.hlsVariant.update({
+      where: { id: existingVariant.id },
+      data: {
+        bitrate: 1500,
+        manifestUrl:
+          'https://pub-0439985b7dab4c45b97f07d23ded7462.r2.dev/TestVideo/index.m3u8',
+      },
+    });
+  }
+
   console.log('✓ Media item created:', media);
 
   console.log('✅ Seeding complete!');

@@ -24,7 +24,7 @@
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
     "db:seed": "node -r ts-node/register -r tsconfig-paths/register prisma/seed.ts",
-    "render:build": "npm install --include=dev && prisma generate && prisma db push && nest build",
+    "render:build": "npm install --include=dev && prisma generate && prisma db push && npm run db:seed && nest build",
     "render:start": "node dist/src/main"
   },
   "dependencies": {
